@@ -4,11 +4,18 @@
 Create a different runtime handler, called runsc (gvisor).
 
 ```bash
-cd ./12a_gvisor
-
 kubectl get runtimeclass ## No resources found
 
-kubectl apply -f runtime_class.yaml
+cat <<EOF | kubectl apply -f -
+apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  # The name the RuntimeClass will be referenced by.
+  # RuntimeClass is a non-namespaced resource.
+  name: gvisor 
+# The name of the corresponding CRI configuration
+handler: runsc
+EOF
 
 kubectl get runtimeclass
 ```
@@ -16,8 +23,32 @@ kubectl get runtimeclass
 Create the pods with `gvisor` runtime class and default `runc` class:
 
 ```bash
-kubectl create -f pod_runsc.yaml
-kubectl create -f pod_runc.yaml
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: nginx
+  name: nginx
+spec:
+  containers:
+    - image: nginx:1.23.0
+      name: nginx
+EOF
+
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: nginx
+  name: nginx-gvisor
+spec:
+  runtimeClassName: gvisor
+  containers:
+    - image: nginx:1.23.0
+      name: nginx
+EOF
 ```
 
 ## Check if gVisor is working
